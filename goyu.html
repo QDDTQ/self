@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Player with Timer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    iframe {
+      border: none;
+      width: 560px;
+      height: 315px;
+    }
+    #timer {
+      font-size: 24px;
+      margin: 20px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>YouTube Player with Timer</h1>
+  <p>Enjoy the video and watch the timer in action!</p>
+
+  <!-- YouTube Player -->
+  <div id="player"></div>
+
+  <!-- Timer Section -->
+  <div id="timer">Remaining Time: 00:10</div>
+  <button id="confirm-button" style="display:none;">Confirm</button>
+
+  <script>
+    // Timer Variables
+    let remainingTime = 10; // 10 seconds
+    let isPlaying = false; // Track the playback state
+    let timerInterval = null;
+
+    const timerElement = document.getElementById('timer');
+    const confirmButton = document.getElementById('confirm-button');
+
+    // Format time to HH:MM:SS
+    const formatTime = (seconds) => {
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const s = (seconds % 60).toString().padStart(2, '0');
+      return `00:${m}:${s}`;
+    };
+
+    // Update timer display
+    const updateTimerDisplay = () => {
+      timerElement.textContent = `Remaining Time: ${formatTime(remainingTime)}`;
+    };
+
+    // Start the timer
+    const startTimer = () => {
+      if (timerInterval || remainingTime <= 0) return; // Prevent multiple intervals
+      timerInterval = setInterval(() => {
+        if (remainingTime > 0) {
+          remainingTime--;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          timerElement.textContent = "Time's up!";
+          confirmButton.style.display = 'inline';
+        }
+      }, 1000);
+    };
+
+    // Pause the timer
+    const pauseTimer = () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    };
+
+    // Load YouTube Player API
+    let player;
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        height: '315',
+        width: '560',
+        videoId: '8619dx9Id0A', // Replace with your desired YouTube video ID
+        events: {
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    }
+
+    // Detect YouTube Player State Changes
+    function onPlayerStateChange(event) {
+      if (event.data == YT.PlayerState.PLAYING) {
+        isPlaying = true;
+        startTimer();
+      } else if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+        isPlaying = false;
+        pauseTimer();
+      }
+    }
+
+    // Confirm Button Logic
+    confirmButton.addEventListener('click', () => {
+      alert('Thank you for watching!');
+      // Add additional logic here if needed
+    });
+
+    // Initialize timer display
+    updateTimerDisplay();
+
+    // Load the YouTube IFrame Player API asynchronously
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+  </script>
+</body>
+</html>
