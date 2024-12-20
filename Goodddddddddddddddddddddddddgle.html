@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify 播放器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #login {
+            background-color: #1db954;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        #playerControls {
+            display: none;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Spotify 播放器</h1>
+    <button id="login" onclick="loginToSpotify()">登入 Spotify</button>
+
+    <div id="playerControls">
+        <button onclick="playTrack()">播放</button>
+        <button onclick="pauseTrack()">暫停</button>
+        <label>音量: <input type="range" min="0" max="1" step="0.1" id="volumeControl" onchange="setVolume()"></label>
+    </div>
+
+    <script>
+        const clientId = '722dc761421b40ac93cc71d7bd4355c0'; // 替換為您的 Client ID
+        const redirectUri = 'http://localhost:8080'; // 與後端或 Spotify Dashboard 配置一致
+        const scopes = ['streaming', 'user-read-playback-state', 'user-modify-playback-state'];
+
+        // Spotify 登入
+        function loginToSpotify() {
+            const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes.join('%20')}&show_dialog=true`;
+            window.location = authUrl;
+        }
+
+        let token = null;
+
+        // 在 URL 中提取 Token
+        window.onload = function() {
+            const hash = window.location.hash
+                .substring(1)
+                .split('&')
+                .reduce((acc, item) => {
+                    const parts = item.split('=');
+                    acc[parts[0]] = decodeURIComponent(parts[1]);
+                    return acc;
+                }, {});
+
+            window.location.hash = ''; // 清除 URL 中的雜訊
+            token = hash.access_token;
+
+            if (token) {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('playerControls').style.display = 'block';
+                setupSpotifyPlayer();
+            }
+        };
+
+        // 初始化 Spotify Player
+        function setupSpotifyPlayer() {
+            window.onSpotifyWebPlaybackSDKReady = () => {
+                const player = new Spotify.Player({
+                    name: 'Web Playback SDK Player',
+                    getOAuthToken: cb => { cb(token); },
+                    volume: 0.5
+                });
+
+                player.addListener('ready', ({ device_id }) => {
+                    console.log('Spotify Player 已準備好，裝置 ID:', device_id);
+                });
+
+                player.addListener('not_ready', ({ device_id }) => {
+                    console.log('Spotify Player 尚未就緒，裝置 ID:', device_id);
+                });
+
+                player.connect();
+
+                // 播放控制功能
+                window.playTrack = () => player.resume();
+                window.pauseTrack = () => player.pause();
+                window.setVolume = () => {
+                    const volume = document.getElementById("volumeControl").value;
+                    player.setVolume(parseFloat(volume));
+                };
+            };
+
+            const script = document.createElement('script');
+            script.src = "https://sdk.scdn.co/spotify-player.js";
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html>
