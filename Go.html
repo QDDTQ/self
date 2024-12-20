@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Embedded Spotify Player</title>
+  <title>Spotify Player with Timer</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -27,8 +27,8 @@
   </style>
 </head>
 <body>
-  <h1>Spotify Embedded Player</h1>
-  <p>Enjoy your favorite music!</p>
+  <h1>Spotify Player with Timer</h1>
+  <p>Enjoy the music and watch the timer in action!</p>
 
   <!-- Spotify Embedded Player -->
   <iframe id="spotify-player"
@@ -38,34 +38,75 @@
   </iframe>
 
   <!-- Timer Section -->
-  <div id="timer">Remaining Time: 01:00:00</div>
+  <div id="timer">Remaining Time: 00:10</div>
   <button id="confirm-button" style="display:none;">Confirm</button>
 
   <script>
-    // Timer Logic
-    let remainingTime = 3600; // 1 hour in seconds
+    // Timer Variables
+    let remainingTime = 10; // 10 seconds
+    let isPlaying = false; // Track the playback state
+    let timerInterval = null;
+
     const timerElement = document.getElementById('timer');
     const confirmButton = document.getElementById('confirm-button');
 
+    // Format time to HH:MM:SS
     const formatTime = (seconds) => {
-      const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-      const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
       const s = (seconds % 60).toString().padStart(2, '0');
-      return `${h}:${m}:${s}`;
+      return `00:${m}:${s}`;
     };
 
-    const updateTimer = () => {
-      if (remainingTime > 0) {
-        remainingTime--;
-        timerElement.textContent = `Remaining Time: ${formatTime(remainingTime)}`;
-      } else {
+    // Update timer display
+    const updateTimerDisplay = () => {
+      timerElement.textContent = `Remaining Time: ${formatTime(remainingTime)}`;
+    };
+
+    // Start the timer
+    const startTimer = () => {
+      if (timerInterval || remainingTime <= 0) return; // Prevent multiple intervals
+      timerInterval = setInterval(() => {
+        if (remainingTime > 0) {
+          remainingTime--;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          timerElement.textContent = "Time's up!";
+          confirmButton.style.display = 'inline';
+        }
+      }, 1000);
+    };
+
+    // Pause the timer
+    const pauseTimer = () => {
+      if (timerInterval) {
         clearInterval(timerInterval);
-        timerElement.textContent = "Time's up!";
-        confirmButton.style.display = 'inline';
+        timerInterval = null;
       }
     };
 
-    const timerInterval = setInterval(updateTimer, 1000);
+    // Mock Spotify player state change simulation
+    const mockPlayerEvents = () => {
+      const iframe = document.getElementById('spotify-player');
+      iframe.contentWindow.postMessage({ event: 'play' }, '*'); // Simulating play event
+      setTimeout(() => iframe.contentWindow.postMessage({ event: 'pause' }, '*'), 5000); // Simulating pause event after 5s
+    };
+
+    // Listen to player state events (play and pause)
+    window.addEventListener('message', (event) => {
+      if (event.data.event === 'play') {
+        isPlaying = true;
+        startTimer();
+      } else if (event.data.event === 'pause') {
+        isPlaying = false;
+        pauseTimer();
+      }
+    });
+
+    // Initialize
+    updateTimerDisplay();
+    mockPlayerEvents(); // Simulate player events for testing purposes
 
     // Confirm Button Logic
     confirmButton.addEventListener('click', () => {
